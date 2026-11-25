@@ -61,7 +61,6 @@
       padding-bottom: 18px;
     }
 
-    /* Contenedor con profundidad 3D manteniendo la forma original del logo */
     .escena-moneda {
       width: 240px;
       height: 240px;
@@ -218,7 +217,7 @@
 
     <section class="resultado-box" aria-live="polite">
       <div id="salidaBs" class="monto-bs">Bs. 0,00</div>
-      <div id="salidaRef" class="detalle-ref">Ref.: 0,00 × Tasa BCV: 922,56370000</div>
+      <div id="salidaRef" class="detalle-ref">Ref.: 0,00 × Tasa BCV: 0,0000</div>
     </section>
 
     <button id="btnCopiar" type="button" class="btn-wa">Copiar WhatsApp</button>
@@ -234,11 +233,7 @@
     const estado = document.getElementById("estado");
 
     // Cambia este valor cuando actualices la tasa oficial
-    const TASA_OFICIAL_BCV = "919,8227";
-    const ESPERA_TRAS_CALCULO_MS = 2500;
-
-    let usoManualPendiente = false;
-    let temporizadorRetorno = null;
+    const TASA_OFICIAL_BCV = "922,5637";
 
     function parsearNumero(valor) {
       if (!valor) return 0;
@@ -264,25 +259,6 @@
         "Ref.: " + formatoVe(monto, 2) + " × Tasa BCV: " + formatoVe(tasa, 4);
     }
 
-    function restaurarTasaOficial() {
-      usoManualPendiente = false;
-      clearTimeout(temporizadorRetorno);
-      if (inputTasa.value !== TASA_OFICIAL_BCV) {
-        inputTasa.value = TASA_OFICIAL_BCV;
-        actualizar();
-        estado.textContent = "Tasa restaurada a BCV oficial (" + TASA_OFICIAL_BCV + ").";
-        setTimeout(() => {
-          estado.textContent = "";
-        }, 2500);
-      }
-    }
-
-    function programarRetornoABcv() {
-      if (!usoManualPendiente) return;
-      clearTimeout(temporizadorRetorno);
-      temporizadorRetorno = setTimeout(restaurarTasaOficial, ESPERA_TRAS_CALCULO_MS);
-    }
-
     function textoWhatsApp() {
       const monto = parsearNumero(inputMonto.value);
       const tasa = parsearNumero(inputTasa.value);
@@ -305,25 +281,13 @@
         estado.textContent = "Copiado para WhatsApp.";
       }
 
-      if (usoManualPendiente) {
-        setTimeout(restaurarTasaOficial, 1200);
-      } else {
-        setTimeout(() => {
-          estado.textContent = "";
-        }, 2500);
-      }
+      setTimeout(() => {
+        estado.textContent = "";
+      }, 2500);
     });
 
-    inputMonto.addEventListener("input", () => {
-      actualizar();
-      programarRetornoABcv();
-    });
-
-    inputTasa.addEventListener("input", () => {
-      usoManualPendiente = true;
-      actualizar();
-      programarRetornoABcv();
-    });
+    inputMonto.addEventListener("input", actualizar);
+    inputTasa.addEventListener("input", actualizar);
 
     inputTasa.value = TASA_OFICIAL_BCV;
     actualizar();
