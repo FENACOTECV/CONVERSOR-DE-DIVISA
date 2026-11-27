@@ -232,8 +232,8 @@
     const btnCopiar = document.getElementById("btnCopiar");
     const estado = document.getElementById("estado");
 
-    // Cambia este valor cuando actualices la tasa oficial
-    const TASA_OFICIAL_BCV = "924,3534";
+    // Respaldo inicial si no hay conexión o la API no responde
+    const TASA_RESPALDO_BCV = "924,3534";
 
     function parsearNumero(valor) {
       if (!valor) return 0;
@@ -266,6 +266,63 @@
       return "Ref.: " + formatoVe(monto, 2) + " -> Bs. " + formatoVe(totalBs, 2);
     }
 
+    async function obtenerTasaBCV() {
+      estado.textContent = "Sincronizando tasa BCV...";
+
+      const fuentes = [
+        async () => {
+          const resp = await fetch("https://ve.dolarapi.com/v1/cotizaciones/usd", { cache: "no-store" });
+          if (!resp.ok) throw new Error("Error DolarApi");
+          const data = await resp.json();
+          const valor = Number(data && data.promedio);
+          if (!Number.isFinite(valor) || valor <= 0) throw new Error("Dato inválido");
+          return {
+            tasa: valor,
+            fecha: data.fechaActualizacion ? new Date(data.fechaActualizacion) : null,
+            fuente: "DolarApi"
+          };
+        },
+        async () => {
+          const resp = await fetch("https://pydolarvenezuela-api.vercel.app/api/v1/dollar?page=bcv", { cache: "no-store" });
+          if (!resp.ok) throw new Error("Error PyDolar");
+          const data = await resp.json();
+          const valor = Number(
+            data && data.monitors && data.monitors.usd && data.monitors.usd.price
+          );
+          if (!Number.isFinite(valor) || valor <= 0) throw new Error("Dato inválido");
+          return {
+            tasa: valor,
+            fecha: null,
+            fuente: "BCV"
+          };
+        }
+      ];
+
+      for (const consultar of fuentes) {
+        try {
+          const resultado = await consultar();
+          // Conserva hasta 4 decimales sin redondear prematuramente a 2
+          const decimales = Number.isInteger(resultado.tasa * 10000) ? 4 : 4;
+          inputTasa.value = resultado.tasa.toFixed(decimales).replace(".", ",");
+          actualizar();
+
+          const textoFecha = resultado.fecha && !Number.isNaN(resultado.fecha.getTime())
+            ? " · Act.: " + resultado.fecha.toLocaleDateString("es-VE")
+            : "";
+          estado.textContent = "Tasa BCV sincronizada (" + resultado.fuente + ")" + textoFecha;
+          return;
+        } catch (err) {
+          // Intenta la siguiente fuente
+        }
+      }
+
+      if (!inputTasa.value) {
+        inputTasa.value = TASA_RESPALDO_BCV;
+      }
+      actualizar();
+      estado.textContent = "Sin conexión directa con API; usando tasa de respaldo.";
+    }
+
     btnCopiar.addEventListener("click", async () => {
       const msg = textoWhatsApp();
       try {
@@ -282,15 +339,18 @@
       }
 
       setTimeout(() => {
-        estado.textContent = "";
+        if (estado.textContent === "Copiado para WhatsApp.") {
+          estado.textContent = "";
+        }
       }, 2500);
     });
 
     inputMonto.addEventListener("input", actualizar);
     inputTasa.addEventListener("input", actualizar);
 
-    inputTasa.value = TASA_OFICIAL_BCV;
+    inputTasa.value = TASA_RESPALDO_BCV;
     actualizar();
+    obtenerTasaBCV();
   </script>
 </body>
 </html>
