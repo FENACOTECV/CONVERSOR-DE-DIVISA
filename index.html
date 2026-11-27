@@ -279,8 +279,7 @@
         if (data?.ok && Number.isFinite(tasaNum) && tasaNum > 0) {
           inputTasa.value = tasaNum.toFixed(4).replace(".", ",");
           actualizar();
-          estado.textContent = "Tasa BCV sincronizada automáticamente.";
-          return;
+        return;
         }
         throw new Error("Datos no válidos");
       } catch (e) {
