@@ -267,8 +267,6 @@
     }
 
     async function obtenerTasaBCV() {
-      estado.textContent = "Sincronizando tasa BCV...";
-
       try {
         const resp = await fetch(URL_WORKER_BCV, { cache: "no-store" });
         if (!resp.ok) throw new Error("Respuesta HTTP " + resp.status);
